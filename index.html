@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kernel Image Format - Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        canvas {
+            border: 1px solid black;
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .slider {
+            width: 80%;
+            margin-bottom: 10px;
+        }
+        .btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .apply-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        .reset-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <input type="file" id="fileInput">
+        <input type="range" min="1" max="20" value="1" class="slider" id="scaleSlider">
+        <button class="btn apply-btn" onclick="applyScale()">Apply</button>
+        <button class="btn reset-btn" onclick="resetScale()">Reset</button>
+    </div>
+    <canvas id="imageCanvas"></canvas>
+
+    <script>
+        let scaleFactor = 1;
+
+        function applyScale() {
+            scaleFactor = document.getElementById('scaleSlider').value;
+            displayKIF();
+        }
+
+        function resetScale() {
+            scaleFactor = 1;
+            document.getElementById('scaleSlider').value = 1;
+            displayKIF();
+        }
+
+        function displayKIF(file) {
+            const imageCanvas = document.getElementById('imageCanvas');
+            const ctx = imageCanvas.getContext('2d');
+
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const data = event.target.result;
+                const lines = data.split('\n');
+                const dimensions = lines[0].split(' ');
+                const originalWidth = parseInt(dimensions[0]);
+                const originalHeight = parseInt(dimensions[1]);
+
+                const scaledWidth = originalWidth * scaleFactor;
+                const scaledHeight = originalHeight * scaleFactor;
+
+                imageCanvas.width = scaledWidth;
+                imageCanvas.height = scaledHeight;
+
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+
+                for (let i = 1; i < lines.length; i++) {
+                    const pixel = lines[i].split(' ');
+                    if (pixel.length === 3) {
+                        const r = parseInt(pixel[0]);
+                        const g = parseInt(pixel[1]);
+                        const b = parseInt(pixel[2]);
+
+                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                        const x = (i - 1) % originalWidth * scaleFactor;
+                        const y = Math.floor((i - 1) / originalWidth) * scaleFactor;
+                        ctx.fillRect(x, y, scaleFactor, scaleFactor);
+                    }
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const selectedFile = event.target.files[0];
+            displayKIF(selectedFile);
+        });
+
+        window.onload = displayKIF;
+    </script>
+</body>
+</html>
