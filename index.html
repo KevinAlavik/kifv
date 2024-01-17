@@ -46,6 +46,7 @@
 </head>
 <body>
     <div class="controls">
+        <textarea rows="4" cols="50" placeholder="Enter KIF data..." id="kifInput"></textarea>
         <input type="file" accept=".kif" id="fileInput">
         <input type="range" min="1" max="20" value="1" class="slider" id="scaleSlider">
         <button class="btn apply-btn" onclick="applyScale()">Apply</button>
@@ -67,52 +68,68 @@
             displayKIF();
         }
 
-        function displayKIF(file) {
+        function displayKIFFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = event.target.result;
+                displayKIFData(data);
+            };
+            reader.readAsText(file);
+        }
+
+        function displayKIFData(data) {
             const imageCanvas = document.getElementById('imageCanvas');
             const ctx = imageCanvas.getContext('2d');
 
-            const reader = new FileReader();
+            const lines = data.split('\n');
+            const dimensions = lines[0].split(' ');
+            const originalWidth = parseInt(dimensions[0]);
+            const originalHeight = parseInt(dimensions[1]);
 
-            reader.onload = function(event) {
-                const data = event.target.result;
-                const lines = data.split('\n');
-                const dimensions = lines[0].split(' ');
-                const originalWidth = parseInt(dimensions[0]);
-                const originalHeight = parseInt(dimensions[1]);
+            const scaledWidth = originalWidth * scaleFactor;
+            const scaledHeight = originalHeight * scaleFactor;
 
-                const scaledWidth = originalWidth * scaleFactor;
-                const scaledHeight = originalHeight * scaleFactor;
+            imageCanvas.width = scaledWidth;
+            imageCanvas.height = scaledHeight;
 
-                imageCanvas.width = scaledWidth;
-                imageCanvas.height = scaledHeight;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, scaledWidth, scaledHeight);
 
-                ctx.fillStyle = 'black';
-                ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+            for (let i = 1; i < lines.length; i++) {
+                const pixel = lines[i].split(' ');
+                if (pixel.length === 3) {
+                    const r = parseInt(pixel[0]);
+                    const g = parseInt(pixel[1]);
+                    const b = parseInt(pixel[2]);
 
-                for (let i = 1; i < lines.length; i++) {
-                    const pixel = lines[i].split(' ');
-                    if (pixel.length === 3) {
-                        const r = parseInt(pixel[0]);
-                        const g = parseInt(pixel[1]);
-                        const b = parseInt(pixel[2]);
-
-                        ctx.fillStyle = `rgb(${r},${g},${b})`;
-                        const x = (i - 1) % originalWidth * scaleFactor;
-                        const y = Math.floor((i - 1) / originalWidth) * scaleFactor;
-                        ctx.fillRect(x, y, scaleFactor, scaleFactor);
-                    }
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    const x = (i - 1) % originalWidth * scaleFactor;
+                    const y = Math.floor((i - 1) / originalWidth) * scaleFactor;
+                    ctx.fillRect(x, y, scaleFactor, scaleFactor);
                 }
-            };
-
-            reader.readAsText(file);
+            }
         }
 
         document.getElementById('fileInput').addEventListener('change', function(event) {
             const selectedFile = event.target.files[0];
-            displayKIF(selectedFile);
+            displayKIFFromFile(selectedFile);
         });
 
-        window.onload = displayKIF;
+        document.getElementById('kifInput').addEventListener('input', function(event) {
+            const kifData = event.target.value;
+            displayKIFData(kifData);
+        });
+
+        window.onload = function() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0) {
+                const selectedFile = fileInput.files[0];
+                displayKIFFromFile(selectedFile);
+            } else {
+                const initialKIFData = "10 10\n255 0 0\n0 255 0\n0 0 255\n...";  // Replace with your KIF data
+                displayKIFData(initialKIFData);
+            }
+        };
     </script>
 </body>
 </html>
